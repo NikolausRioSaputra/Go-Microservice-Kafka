@@ -32,7 +32,7 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 	req.URL.RawQuery = q.Encode()
 
 	// Atur timeout dan buat HTTP client
-	client := &http.Client{Timeout: 1 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Second}
 
 	// Panggil API eksternal
 	resp, err := client.Do(req)
@@ -46,8 +46,10 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 	}
 
 	var apiResponse struct {
-		IsValid bool   `json:"isValid"`
-		Message string `json:"message"`
+		IsValid  bool    `json:"isValid"`
+		Status   string  `json:"status"`
+		Balance  float64 `json:"balance"`
+		Message  string  `json:"message"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {

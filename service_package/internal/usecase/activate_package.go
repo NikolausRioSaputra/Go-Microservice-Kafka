@@ -33,7 +33,7 @@ func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Messag
 	req.URL.RawQuery = q.Encode()
 
 	// Atur timeout dan buat HTTP client
-	client := &http.Client{Timeout: 1 * time.Second}
+	client := &http.Client{Timeout: 5 * time.Second}
 
 	// Panggil API eksternal
 	resp, err := client.Do(req)
@@ -47,8 +47,9 @@ func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Messag
 	}
 
 	var apiResponse struct {
-		IsValid bool   `json:"isValid"`
-		Message string `json:"message"`
+	IsValid  bool   `json:"isValid"`
+		Status   string `json:"status"`
+		Message  string `json:"message"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
@@ -58,19 +59,19 @@ func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Messag
 	if !apiResponse.IsValid {
 		return domain.Response{
 			OrderType:     msg.OrderType,
-			OrderService:  "activatePackage",
+			OrderService:  "validatePackage",
 			TransactionId: msg.TransactionId,
 			UserId:        msg.UserId,
 			PackageId:     msg.PackageId,
 			RespCode:      400,
-			RespStatus:    "Success",
-			RespMessage:   "Package is not Activated",
+			RespStatus:    "Failed",
+			RespMessage:   "Package is not valid",
 		}, nil
 	}
 
 	return domain.Response{
 		OrderType:     msg.OrderType,
-		OrderService:  "activatePackage",
+		OrderService:  "validatePackage",
 		TransactionId: msg.TransactionId,
 		UserId:        msg.UserId,
 		PackageId:     msg.PackageId,

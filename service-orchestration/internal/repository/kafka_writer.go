@@ -23,9 +23,9 @@ func NewKafkaWriter(brokers []string, topic string) KafkaWriterRepository {
 		}),
 	}
 }
-
+// ->Metode ini bertanggung jawab untuk menulis atau mengirim satu pesan ke Kafka
 func (kw *kafkaWriter) WriteMessage(ctx context.Context, message kafka.Message) error {
-	return kw.writer.WriteMessages(ctx, message) // ->Metode ini bertanggung jawab untuk menulis atau mengirim satu pesan ke Kafka
+	return kw.writer.WriteMessages(ctx, message)
 }
 
 func (kw *kafkaWriter) Close() error {

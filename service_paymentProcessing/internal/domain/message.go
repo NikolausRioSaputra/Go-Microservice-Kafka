@@ -1,7 +1,9 @@
 package domain
 
+// Struct Message digunakan untuk merepresentasikan data pesan yang diterima.
 
-type Message struct {
+// Struct Message digunakan untuk merepresentasikan data pesan yang diterima.
+type PaymentMessage struct {
 	OrderType     string  `json:"orderType"`
 	TransactionId string  `json:"transactionId"`
 	UserId        string  `json:"userId"`
@@ -10,7 +12,7 @@ type Message struct {
 	PaymentMethod string  `json:"paymentMethod"`
 }
 
-type Response struct {
+type PaymentResponse struct {
 	OrderType     string `json:"orderType"`
 	OrderService  string `json:"orderService"`
 	TransactionId string `json:"transactionId"`

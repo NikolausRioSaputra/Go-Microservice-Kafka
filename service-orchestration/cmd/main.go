@@ -33,7 +33,8 @@ func main() {
 	kafkaReader := repository.NewKafkaReader([]string{"localhost:29092"}, "topic_0", "my-consumer-group")
 	kafkaWriter := repository.NewKafkaWriter([]string{"localhost:29092"}, "topic_validateUser")
 	kafkaActivateWriter := repository.NewKafkaWriter([]string{"localhost:29092"}, "topic_activatePackage")
-	kafkaUseCase := usecase.NewKafkaUseCase(kafkaReader, kafkaWriter, kafkaActivateWriter)
+	kafkaPaymentWriter := repository.NewKafkaWriter([]string{"localhost:29092"}, "topic_processPayment")
+	kafkaUseCase := usecase.NewKafkaUseCase(kafkaReader, kafkaWriter, kafkaActivateWriter, kafkaPaymentWriter)
 
 	// 1.Initialize Order repository
 	// 2. Initialize use cases
@@ -42,7 +43,6 @@ func main() {
 	orderRepo := repository.NewOrderRepository(database)
 	orderUseCase := usecase.NewOrderUseCase(kafkaWriter, orderRepo)
 	orderHandler := handler.NewOrderHandler(orderUseCase) //-> mengatur rute terkait penguna
-
 
 	// Initialize user repository
 	// Initialize user use case

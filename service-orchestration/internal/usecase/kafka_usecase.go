@@ -1,4 +1,5 @@
 package usecase
+
 // use case yang bertanggung jawab untuk mengkonsumsi pesan dari Kafka, memprosesnya, dan mengirimkannya kembali ke Kafka pada topik yang berbeda berdasarkan tipe pesan.
 
 import (
@@ -15,17 +16,19 @@ type KafkaUseCase interface {
 	ConsumeMessages(ctx context.Context)
 }
 type kafkaUseCase struct {
-	kafkaReader   repository.KafkaReaderRepository // -> digunakan membaca pesan dikafka
-	kafkaWriter   repository.KafkaWriterRepository // -> menuliskan pesan di kafka untuk topic valdasi
-	kafkaActivate repository.KafkaWriterRepository // -> digunakan untuk menulisakan pesan untuk aktivasi package
+	kafkaReader        repository.KafkaReaderRepository // -> digunakan membaca pesan dikafka
+	kafkaWriter        repository.KafkaWriterRepository // -> menuliskan pesan di kafka untuk topic valdasi
+	kafkaActivate      repository.KafkaWriterRepository // -> digunakan untuk menulisakan pesan untuk aktivasi package
+	kafkaPaymentWriter repository.KafkaWriterRepository // -> digunakan untuk menulisakan pesan untuk aktivasi package
 }
 
 // fungsi yang di gunakan untuk membuat fungsi baru
-func NewKafkaUseCase(kr repository.KafkaReaderRepository, kw repository.KafkaWriterRepository, ka repository.KafkaWriterRepository) KafkaUseCase {
+func NewKafkaUseCase(kr repository.KafkaReaderRepository, kw repository.KafkaWriterRepository, ka repository.KafkaWriterRepository, kp repository.KafkaWriterRepository) KafkaUseCase {
 	return &kafkaUseCase{
-		kafkaReader:   kr,
-		kafkaWriter:   kw,
-		kafkaActivate: ka,
+		kafkaReader:        kr,
+		kafkaWriter:        kw,
+		kafkaActivate:      ka,
+		kafkaPaymentWriter: kp,
 	}
 }
 
@@ -40,7 +43,6 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 		log.Printf("Received message: %s\n", string(message.Value))
 
 		var incoming domain.IncomingMessage
-		//pesan yang diterima di ubah dari format json menjadi object incoming massage
 		if err := json.Unmarshal(message.Value, &incoming); err != nil {
 			log.Printf("Error parsing message: %v\n", err)
 			continue
@@ -51,7 +53,7 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 			switch incoming.OrderService {
 			case "":
 				// Step 1: Validate User
-				// Pesan dikirim ke topik Kafka yang terkait dengan validasi pengguna.
+				incoming.OrderService = "validateUser"
 				responseBytes, _ := json.Marshal(incoming)
 				err = uc.kafkaWriter.WriteMessage(ctx, kafka.Message{
 					Key:   []byte(incoming.TransactionId),
@@ -64,20 +66,35 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 				log.Printf("Message sent to topic_validateUser: %s\n", string(responseBytes))
 
 			case "validateUser":
-				// Step 2: Activate Package
+				// Step 2: Validate Package
+				incoming.OrderService = "validatePackage"
 				responseBytes, _ := json.Marshal(incoming)
 				err = uc.kafkaActivate.WriteMessage(ctx, kafka.Message{
 					Key:   []byte(incoming.TransactionId),
 					Value: responseBytes,
 				})
 				if err != nil {
-					log.Printf("Error writing message to topic_activatePackage: %v\n", err)
+					log.Printf("Error writing message to topic_validatePackage: %v\n", err)
 					continue
 				}
-				log.Printf("Message sent to topic_activatePackage: %s\n", string(responseBytes))
+				log.Printf("Message sent to topic_validatePackage: %s\n", string(responseBytes))
 
-			case "activatePackage":
-				// Step 3: Complete Transaction
+			case "validatePackage":
+				// Step 3: Process Payment
+				incoming.OrderService = "processPayment"
+				responseBytes, _ := json.Marshal(incoming)
+				err = uc.kafkaPaymentWriter.WriteMessage(ctx, kafka.Message{
+					Key:   []byte(incoming.TransactionId),
+					Value: responseBytes,
+				})
+				if err != nil {
+					log.Printf("Error writing message to topic_processPayment: %v\n", err)
+					continue
+				}
+				log.Printf("Message sent to topic_processPayment: %s\n", string(responseBytes))
+
+			case "processPayment":
+				// Step 4: Complete Transaction
 				log.Printf("===============================================================================================")
 				log.Printf("Transaction ID %s for order type '%s' is COMPLETED\n", incoming.TransactionId, incoming.OrderType)
 				log.Printf("===============================================================================================")

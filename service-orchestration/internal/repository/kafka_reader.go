@@ -19,14 +19,15 @@ func NewKafkaReader(brokers []string, topic, groupID string) KafkaReaderReposito
 	return &kafkaReader{
 		reader: kafka.NewReader(kafka.ReaderConfig{
 			Brokers:  brokers, // -> Broker adalah node dalam cluster Kafka yang menyimpan dan mengelola data Kafka.
-			Topic:    topic, // -> Nama topic Kafka tempat pesan akan dibaca.
+			Topic:    topic, // ->  topic Kafka dibaca pada_0
 			GroupID:  groupID, // group untuk melacak offset dari pesan yang di konsomsi group
 		}),
 	}
 }
 
+// -> metode yang digunakan untuk membaca pesan dari kafka
 func (kr *kafkaReader) ReadMessage(ctx context.Context) (kafka.Message, error) {
-	return kr.reader.ReadMessage(ctx) // -> metode yang digunakan untuk membaca pesan dari kafka
+	return kr.reader.ReadMessage(ctx)
 }
 
 func (kr *kafkaReader) Close() error {

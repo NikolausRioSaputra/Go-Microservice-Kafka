@@ -29,6 +29,7 @@ func (uc *orderUseCase) ProcessOrder(ctx context.Context, order domain.OrderRequ
 		return err
 	}
 
+	// kafka akan melakukan write massage
 	message := kafka.Message{
 		Key:   []byte(order.TransactionID),
 		Value: []byte(`{"orderType": "` + order.OrderType + `", "transactionId": "` + order.TransactionID + `", "userId": "` + order.UserId + `", "packageId": "` + order.PackageId + `"}`),

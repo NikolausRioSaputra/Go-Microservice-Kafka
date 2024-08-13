@@ -27,7 +27,7 @@ func InitializeRoutes(router *gin.Engine, orderHandler *handler.OrderHandler, us
 
 	// Order Routes
 	orderRoutes := router.Group("/orders")
-	orderRoutes.Use(middleware.AuthMiddleware())
+	orderRoutes.Use(middleware.AuthMiddleware(), middleware.LoggingMiddleware())
 	{
 		orderRoutes.POST("/create", orderHandler.CreateOrder)
 		// Tambahkan rute terkait order lainnya di sini

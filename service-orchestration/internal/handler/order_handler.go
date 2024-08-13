@@ -21,11 +21,13 @@ func NewOrderHandler(uc usecase.OrderUseCase) *OrderHandler {
 
 func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	var orderReq domain.OrderRequest
+	// cek apakah order request nya sesuai
 	if err := c.ShouldBindJSON(&orderReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request payload"})
 		return
 	}
 
+	// cek proses order -> sekaligus melakukan penulisan kafka untuk mengirim kan pesan
 	if err := h.orderUseCase.ProcessOrder(context.Background(), orderReq); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process order" + err.Error()})
 		return
