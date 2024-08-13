@@ -29,27 +29,19 @@ func main() {
 
 	// Initialize repositories
 	// Initialize Kafka repositories
-	//-> ini nge kosume pesan dari topic dangan consumer group
 	kafkaReader := repository.NewKafkaReader([]string{"localhost:29092"}, "topic_0", "my-consumer-group")
-	kafkaWriter := repository.NewKafkaWriter([]string{"localhost:29092"}, "topic_validateUser")
-	kafkaActivateWriter := repository.NewKafkaWriter([]string{"localhost:29092"}, "topic_activatePackage")
-	kafkaPaymentWriter := repository.NewKafkaWriter([]string{"localhost:29092"}, "topic_processPayment")
-	kafkaUseCase := usecase.NewKafkaUseCase(kafkaReader, kafkaWriter, kafkaActivateWriter, kafkaPaymentWriter)
+	kafkaWriter := repository.NewKafkaWriter([]string{"localhost:29092"}) // Menghilangkan topik dari inisialisasi
+	kafkaUseCase := usecase.NewKafkaUseCase(kafkaReader, kafkaWriter, kafkaWriter, kafkaWriter)
 
-	// 1.Initialize Order repository
-	// 2. Initialize use cases
-	// 3. menagani logica order dan pakai kafka writer untuk publis pesan
-	// 4. bertangung jawab mengkonsumsi pesan kafka
+	// Initialize Order repository
 	orderRepo := repository.NewOrderRepository(database)
 	orderUseCase := usecase.NewOrderUseCase(kafkaWriter, orderRepo)
-	orderHandler := handler.NewOrderHandler(orderUseCase) //-> mengatur rute terkait penguna
+	orderHandler := handler.NewOrderHandler(orderUseCase)
 
 	// Initialize user repository
-	// Initialize user use case
-	// Initialize handlers
 	userRepo := repository.NewUserRepository(database)
 	userUseCase := usecase.NewUserUseCase(userRepo)
-	userHandler := handler.NewUserHandler(userUseCase) // -> mengatur rute penguna
+	userHandler := handler.NewUserHandler(userUseCase)
 
 	gin.SetMode(gin.ReleaseMode)
 	router := gin.New()

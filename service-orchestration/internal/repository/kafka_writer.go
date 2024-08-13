@@ -7,27 +7,31 @@ import (
 )
 
 type KafkaWriterRepository interface {
-	WriteMessage(ctx context.Context, message kafka.Message) error
+	WriteMessage(ctx context.Context, topic string, message kafka.Message) error
 	Close() error
 }
 
 type kafkaWriter struct {
-	writer *kafka.Writer
+	brokers []string
 }
 
-func NewKafkaWriter(brokers []string, topic string) KafkaWriterRepository {
+func NewKafkaWriter(brokers []string) KafkaWriterRepository {
 	return &kafkaWriter{
-		writer: kafka.NewWriter(kafka.WriterConfig{
-			Brokers: brokers,
-			Topic:   topic,
-		}),
+		brokers: brokers,
 	}
 }
-// ->Metode ini bertanggung jawab untuk menulis atau mengirim satu pesan ke Kafka
-func (kw *kafkaWriter) WriteMessage(ctx context.Context, message kafka.Message) error {
-	return kw.writer.WriteMessages(ctx, message)
-}
 
+func (kw *kafkaWriter) WriteMessage(ctx context.Context, topic string, message kafka.Message) error {
+	writer := kafka.NewWriter(kafka.WriterConfig{
+		Brokers: kw.brokers,
+		Topic:   topic,
+	})
+	defer writer.Close()
+
+	return writer.WriteMessages(ctx, message)
+}
+// ->Metode ini bertanggung jawab untuk menulis atau mengirim satu pesan ke Kafka
 func (kw *kafkaWriter) Close() error {
-	return kw.writer.Close()
+	// Kafka writer tidak memiliki resource yang tetap, jadi tidak ada yang perlu di-close di sini
+	return nil
 }

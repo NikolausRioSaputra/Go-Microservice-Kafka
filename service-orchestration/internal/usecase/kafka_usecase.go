@@ -33,7 +33,6 @@ func NewKafkaUseCase(kr repository.KafkaReaderRepository, kw repository.KafkaWri
 }
 
 func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
-	// fungsi loop tak henti digunakan untuk secara terus menerus mendeangar pesan dari kafka
 	for {
 		message, err := uc.kafkaReader.ReadMessage(ctx)
 		if err != nil {
@@ -48,57 +47,38 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 			continue
 		}
 
+		var topic string
+
 		switch incoming.OrderType {
 		case "Buy Package":
 			switch incoming.OrderService {
 			case "":
-				// Step 1: Validate User
 				incoming.OrderService = "validateUser"
-				responseBytes, _ := json.Marshal(incoming)
-				err = uc.kafkaWriter.WriteMessage(ctx, kafka.Message{
-					Key:   []byte(incoming.TransactionId),
-					Value: responseBytes,
-				})
-				if err != nil {
-					log.Printf("Error writing message to topic_validateUser: %v\n", err)
-					continue
-				}
-				log.Printf("Message sent to topic_validateUser: %s\n", string(responseBytes))
+				topic = "topic_validateUser"
 
 			case "validateUser":
-				// Step 2: Validate Package
 				incoming.OrderService = "validatePackage"
-				responseBytes, _ := json.Marshal(incoming)
-				err = uc.kafkaActivate.WriteMessage(ctx, kafka.Message{
-					Key:   []byte(incoming.TransactionId),
-					Value: responseBytes,
-				})
-				if err != nil {
-					log.Printf("Error writing message to topic_validatePackage: %v\n", err)
-					continue
-				}
-				log.Printf("Message sent to topic_validatePackage: %s\n", string(responseBytes))
+				topic = "topic_validatePackage"
 
 			case "validatePackage":
-				// Step 3: Process Payment
 				incoming.OrderService = "processPayment"
-				responseBytes, _ := json.Marshal(incoming)
-				err = uc.kafkaPaymentWriter.WriteMessage(ctx, kafka.Message{
-					Key:   []byte(incoming.TransactionId),
-					Value: responseBytes,
-				})
-				if err != nil {
-					log.Printf("Error writing message to topic_processPayment: %v\n", err)
-					continue
-				}
-				log.Printf("Message sent to topic_processPayment: %s\n", string(responseBytes))
+				topic = "topic_processPayment"
 
 			case "processPayment":
-				// Step 4: Complete Transaction
-				log.Printf("===============================================================================================")
 				log.Printf("Transaction ID %s for order type '%s' is COMPLETED\n", incoming.TransactionId, incoming.OrderType)
-				log.Printf("===============================================================================================")
+				continue
 			}
+
+			responseBytes, _ := json.Marshal(incoming)
+			err = uc.kafkaWriter.WriteMessage(ctx, topic, kafka.Message{
+				Key:   []byte(incoming.TransactionId),
+				Value: responseBytes,
+			})
+			if err != nil {
+				log.Printf("Error writing message to %s: %v\n", topic, err)
+				continue
+			}
+			log.Printf("Message sent to %s: %s\n", topic, string(responseBytes))
 
 		default:
 			log.Printf("Received unsupported message format: %v\n", incoming)

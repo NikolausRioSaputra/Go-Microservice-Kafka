@@ -7,7 +7,6 @@ import (
 
 	"github.com/segmentio/kafka-go"
 )
-
 type OrderUseCase interface {
 	ProcessOrder(ctx context.Context, order domain.OrderRequest) error
 }
@@ -29,10 +28,21 @@ func (uc *orderUseCase) ProcessOrder(ctx context.Context, order domain.OrderRequ
 		return err
 	}
 
-	// kafka akan melakukan write massage
+	// Tentukan topik Kafka berdasarkan tipe order atau kondisi lainnya
+	var topic string
+	switch order.OrderType {
+	case "Buy Package":
+		topic = "topic_validateUser"
+	default:
+		topic = "default_topic" // Topik default jika tipe order tidak dikenali
+	}
+
+	// Membuat pesan Kafka
 	message := kafka.Message{
 		Key:   []byte(order.TransactionID),
 		Value: []byte(`{"orderType": "` + order.OrderType + `", "transactionId": "` + order.TransactionID + `", "userId": "` + order.UserId + `", "packageId": "` + order.PackageId + `"}`),
 	}
-	return uc.kafkaWriter.WriteMessage(ctx, message)
+
+	// Menulis pesan ke Kafka dengan topik yang sesuai
+	return uc.kafkaWriter.WriteMessage(ctx, topic, message)
 }

@@ -10,7 +10,7 @@ import (
 
 func main() {
 	// Initialize Kafka Reader and Writer Repositories
-	reader := repository.NewKafkaReaderRepository([]string{"localhost:29092"}, "topic_activatePackage", "my-consumer-group") // -> membaca dari topic melalui broker di localhost, membaca topic topic_activatepackage
+	reader := repository.NewKafkaReaderRepository([]string{"localhost:29092"}, "topic_validatePackage", "my-consumer-group") // -> membaca dari topic melalui broker di localhost, membaca topic topic_activatepackage
 	writer := repository.NewKafkaWriterRepository([]string{"localhost:29092"}, "topic_0") // -> inisialisai menulis kafka yang sama dan menulis ke topic 0
 
 	// Create the use case
