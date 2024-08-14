@@ -20,15 +20,17 @@ type kafkaUseCase struct {
 	kafkaWriter        repository.KafkaWriterRepository // -> menuliskan pesan di kafka untuk topic valdasi
 	kafkaActivate      repository.KafkaWriterRepository // -> digunakan untuk menulisakan pesan untuk aktivasi package
 	kafkaPaymentWriter repository.KafkaWriterRepository // -> digunakan untuk menulisakan pesan untuk aktivasi package
+	viewTopic          repository.OcresRepository
 }
 
 // fungsi yang di gunakan untuk membuat fungsi baru
-func NewKafkaUseCase(kr repository.KafkaReaderRepository, kw repository.KafkaWriterRepository, ka repository.KafkaWriterRepository, kp repository.KafkaWriterRepository) KafkaUseCase {
+func NewKafkaUseCase(kr repository.KafkaReaderRepository, kw repository.KafkaWriterRepository, ka repository.KafkaWriterRepository, kp repository.KafkaWriterRepository, vt repository.OcresRepository) KafkaUseCase {
 	return &kafkaUseCase{
 		kafkaReader:        kr,
 		kafkaWriter:        kw,
 		kafkaActivate:      ka,
 		kafkaPaymentWriter: kp,
+		viewTopic:          vt,
 	}
 }
 
@@ -47,41 +49,63 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 			continue
 		}
 
-		var topic string
-
-		switch incoming.OrderType {
-		case "Buy Package":
-			switch incoming.OrderService {
-			case "":
-				incoming.OrderService = "validateUser"
-				topic = "topic_validateUser"
-
-			case "validateUser":
-				incoming.OrderService = "validatePackage"
-				topic = "topic_validatePackage"
-
-			case "validatePackage":
-				incoming.OrderService = "processPayment"
-				topic = "topic_processPayment"
-
-			case "processPayment":
-				log.Printf("Transaction ID %s for order type '%s' is COMPLETED\n", incoming.TransactionId, incoming.OrderType)
-				continue
-			}
-
-			responseBytes, _ := json.Marshal(incoming)
-			err = uc.kafkaWriter.WriteMessage(ctx, topic, kafka.Message{
-				Key:   []byte(incoming.TransactionId),
-				Value: responseBytes,
-			})
-			if err != nil {
-				log.Printf("Error writing message to %s: %v\n", topic, err)
-				continue
-			}
-			log.Printf("Message sent to %s: %s\n", topic, string(responseBytes))
-
-		default:
-			log.Printf("Received unsupported message format: %v\n", incoming)
+		topic, err := uc.viewTopic.ViewTopic(incoming.OrderType, incoming.OrderService)
+		if err != nil {
+			log.Printf("Error while view topic: %v\n", err)
+			continue
 		}
+
+		if topic == "finish" {
+
+			log.Printf("Transaction ID %s for order type '%s' is COMPLETED\n", incoming.TransactionId, incoming.OrderType)
+			return
+		}
+
+		responseBytes, _ := json.Marshal(incoming)
+		err = uc.kafkaWriter.WriteMessage(ctx, topic, kafka.Message{
+			Key:   []byte(incoming.TransactionId),
+			Value: responseBytes,
+		})
+		if err != nil {
+			log.Printf("Error writing message to %s: %v\n", topic, err)
+			continue
+		}
+		log.Printf("Message sent to %s: %s\n", topic, string(responseBytes))
+
+		// 	switch incoming.OrderType {
+		// 	case "Buy Package":
+		// 		switch incoming.OrderService {
+		// 		case "":
+		// 			incoming.OrderService = "validateUser"
+		// 			topic = "topic_validateUser"
+
+		// 		case "validateUser":
+		// 			incoming.OrderService = "validatePackage"
+		// 			topic = "topic_validatePackage"
+
+		// 		case "validatePackage":
+		// 			incoming.OrderService = "processPayment"
+		// 			topic = "topic_processPayment"
+
+		// 		case "processPayment":
+		// 			log.Printf("Transaction ID %s for order type '%s' is COMPLETED\n", incoming.TransactionId, incoming.OrderType)
+		// 			continue
+		// 		}
+
+		// 		responseBytes, _ := json.Marshal(incoming)
+		// 		err = uc.kafkaWriter.WriteMessage(ctx, topic, kafka.Message{
+		// 			Key:   []byte(incoming.TransactionId),
+		// 			Value: responseBytes,
+		// 		})
+		// 		if err != nil {
+		// 			log.Printf("Error writing message to %s: %v\n", topic, err)
+		// 			continue
+		// 		}
+		// 		log.Printf("Message sent to %s: %s\n", topic, string(responseBytes))
+
+		// 	default:
+		// 		log.Printf("Received unsupported message format: %v\n", incoming)
+		// 	}
+		// }
 	}
 }

@@ -2,13 +2,13 @@ package routes
 
 import (
 	"net/http"
-	"service-orchestration/m/internal/handler"
-	"service-orchestration/m/internal/middleware"
+	"order-service/internal/handler"
+	"order-service/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func InitializeRoutes(router *gin.Engine, orderHandler *handler.OrderHandler, userHandler *handler.UserHandler) {
+func InitializeRoutes(router *gin.Engine, orderHandler *handler.OrderHandler) {
 	// Token route
 	router.GET("/token", func(c *gin.Context) {
 		token, err := middleware.GenerateToken()
@@ -18,12 +18,6 @@ func InitializeRoutes(router *gin.Engine, orderHandler *handler.OrderHandler, us
 		}
 		c.JSON(http.StatusOK, gin.H{"token": token})
 	})
-
-	userRoutes := router.Group("/users")
-	{
-		userRoutes.POST("/create", userHandler.StoreNewUser)
-		// userRoutes.GET("/:id", userHandler.GetUser)
-	}
 
 	// Order Routes
 	orderRoutes := router.Group("/orders")

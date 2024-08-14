@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"service-orchestration/m/internal/domain"
+	"order-service/internal/domain"
 )
 
 type OrderRepository interface {
