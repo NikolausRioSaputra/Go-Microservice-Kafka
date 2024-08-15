@@ -29,7 +29,7 @@ func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Messag
 	}
 	// Tambahkan query parameters atau headers jika diperlukan
 	q := req.URL.Query()
-	q.Add("packageId", msg.PackageId)
+	q.Add("itemId", msg.ItemId)
 	req.URL.RawQuery = q.Encode()
 
 	// Atur timeout dan buat HTTP client
@@ -43,13 +43,13 @@ func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Messag
 	defer resp.Body.Close()
 	// Proses response dari API eksternal
 	if resp.StatusCode != http.StatusOK {
-		return domain.Response{}, errors.New("failed to validate package")
+		return domain.Response{}, errors.New("failed to validate item")
 	}
 
 	var apiResponse struct {
-	IsValid  bool   `json:"isValid"`
-		Status   string `json:"status"`
-		Message  string `json:"message"`
+		IsValid bool   `json:"isValid"`
+		Status  string `json:"status"`
+		Message string `json:"message"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
@@ -59,25 +59,25 @@ func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Messag
 	if !apiResponse.IsValid {
 		return domain.Response{
 			OrderType:     msg.OrderType,
-			OrderService:  "validatePackage",
+			OrderService:  "validateItem",
 			TransactionId: msg.TransactionId,
 			UserId:        msg.UserId,
-			PackageId:     msg.PackageId,
+			ItemId:        msg.ItemId,
 			RespCode:      400,
 			RespStatus:    "Failed",
-			RespMessage:   "Package is not valid",
+			RespMessage:   "Item is Empty not found",
 		}, nil
 	}
 
 	return domain.Response{
 		OrderType:     msg.OrderType,
-		OrderService:  "validatePackage",
+		OrderService:  "validateItem",
 		TransactionId: msg.TransactionId,
 		UserId:        msg.UserId,
-		PackageId:     msg.PackageId,
+		ItemId:        msg.ItemId,
 		RespCode:      200,
 		RespStatus:    "Success",
-		RespMessage:   "Package is Successfully Activated",
+		RespMessage:   "Item is Available",
 	}, nil
 
 }

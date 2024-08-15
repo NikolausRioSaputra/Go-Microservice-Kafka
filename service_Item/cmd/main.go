@@ -10,8 +10,8 @@ import (
 
 func main() {
 	// Initialize Kafka Reader and Writer Repositories
-	reader := repository.NewKafkaReaderRepository([]string{"localhost:29092"}, "topic_validatePackage", "my-consumer-group") // -> membaca dari topic melalui broker di localhost, membaca topic topic_activatepackage
-	writer := repository.NewKafkaWriterRepository([]string{"localhost:29092"}, "topic_0") // -> inisialisai menulis kafka yang sama dan menulis ke topic 0
+	reader := repository.NewKafkaReaderRepository([]string{"localhost:29092"}, "topic_validateItem", "my-consumer-group") // -> membaca dari topic melalui broker di localhost, membaca topic topic_activatepackage
+	writer := repository.NewKafkaWriterRepository([]string{"localhost:29092"}, "topic_0")                                 // -> inisialisai menulis kafka yang sama dan menulis ke topic 0
 
 	// Create the use case
 	useCase := usecase.NewMessageUseCase() // -> membuat instance dari logika bisnis yang di terapkan pada pesan kafka yang di terima
@@ -23,7 +23,7 @@ func main() {
 	defer reader.Close()
 	defer writer.Close()
 
-	fmt.Println("activatePackage is waiting for messages...")
+	fmt.Println("Item is waiting for messages...")
 
 	// Start processing messages
 	messageHandler.ProcessMessages(context.Background()) // -> mulai memproses pesan dari Kafka menggunakan konteks context.Background() sebagai root context. Ini mungkin mencakup operasi asinkronus untuk menerima dan menulis pesan.

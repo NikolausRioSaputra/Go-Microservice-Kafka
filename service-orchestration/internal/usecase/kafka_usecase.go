@@ -21,16 +21,25 @@ type kafkaUseCase struct {
 	kafkaActivate      repository.KafkaWriterRepository // -> digunakan untuk menulisakan pesan untuk aktivasi package
 	kafkaPaymentWriter repository.KafkaWriterRepository // -> digunakan untuk menulisakan pesan untuk aktivasi package
 	viewTopic          repository.OcresRepository
+	saveTransaction    repository.OcresRepository
 }
 
 // fungsi yang di gunakan untuk membuat fungsi baru
-func NewKafkaUseCase(kr repository.KafkaReaderRepository, kw repository.KafkaWriterRepository, ka repository.KafkaWriterRepository, kp repository.KafkaWriterRepository, vt repository.OcresRepository) KafkaUseCase {
+func NewKafkaUseCase(
+	kr repository.KafkaReaderRepository,
+	kw repository.KafkaWriterRepository,
+	ka repository.KafkaWriterRepository,
+	kp repository.KafkaWriterRepository,
+	vt repository.OcresRepository,
+	st repository.OcresRepository,
+) KafkaUseCase {
 	return &kafkaUseCase{
 		kafkaReader:        kr,
 		kafkaWriter:        kw,
 		kafkaActivate:      ka,
 		kafkaPaymentWriter: kp,
 		viewTopic:          vt,
+		saveTransaction:    st,
 	}
 }
 
@@ -49,63 +58,55 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 			continue
 		}
 
-		topic, err := uc.viewTopic.ViewTopic(incoming.OrderType, incoming.OrderService)
+		// Ambil topik dan order service berikutnya dari database berdasarkan OrderType dan OrderService saat ini
+		nextTopic, err := uc.viewTopic.ViewTopic(incoming.OrderType, incoming.OrderService)
 		if err != nil {
-			log.Printf("Error while view topic: %v\n", err)
+			log.Printf("Error while retrieving topic: %v\n", err)
 			continue
 		}
 
-		if topic == "finish" {
+		// Simpan transaksi ke dalam database dengan status "PROCESSED"
+		transactionID, err := uc.saveTransaction.SaveTransaction(
+			incoming.TransactionId,
+			incoming.OrderType,
+			incoming.OrderService,
+			nextTopic,
+			"SUCCESS",
+		)
+		if err != nil {
+			log.Printf("Error saving transaction: %v\n", err)
+			continue
+		}
+		log.Printf("Transaction saved with ID: %d\n", transactionID)
 
+		// Periksa apakah langkah berikutnya adalah "finish"
+		if nextTopic == "finish" {
+			uc.saveTransaction.SaveTransaction(
+				incoming.TransactionId,
+				incoming.OrderType,
+				incoming.OrderService,
+				nextTopic,
+				"COMPLETED",
+			)
 			log.Printf("Transaction ID %s for order type '%s' is COMPLETED\n", incoming.TransactionId, incoming.OrderType)
-			return
+			continue
 		}
 
+		// Update OrderService untuk langkah berikutnya
+		incoming.OrderService = nextTopic
+
+		// Serialisasi pesan kembali menjadi JSON
 		responseBytes, _ := json.Marshal(incoming)
-		err = uc.kafkaWriter.WriteMessage(ctx, topic, kafka.Message{
+
+		// Menulis pesan ke Kafka pada topik yang ditentukan
+		err = uc.kafkaWriter.WriteMessage(ctx, nextTopic, kafka.Message{
 			Key:   []byte(incoming.TransactionId),
 			Value: responseBytes,
 		})
 		if err != nil {
-			log.Printf("Error writing message to %s: %v\n", topic, err)
+			log.Printf("Error writing message to %s: %v\n", nextTopic, err)
 			continue
 		}
-		log.Printf("Message sent to %s: %s\n", topic, string(responseBytes))
-
-		// 	switch incoming.OrderType {
-		// 	case "Buy Package":
-		// 		switch incoming.OrderService {
-		// 		case "":
-		// 			incoming.OrderService = "validateUser"
-		// 			topic = "topic_validateUser"
-
-		// 		case "validateUser":
-		// 			incoming.OrderService = "validatePackage"
-		// 			topic = "topic_validatePackage"
-
-		// 		case "validatePackage":
-		// 			incoming.OrderService = "processPayment"
-		// 			topic = "topic_processPayment"
-
-		// 		case "processPayment":
-		// 			log.Printf("Transaction ID %s for order type '%s' is COMPLETED\n", incoming.TransactionId, incoming.OrderType)
-		// 			continue
-		// 		}
-
-		// 		responseBytes, _ := json.Marshal(incoming)
-		// 		err = uc.kafkaWriter.WriteMessage(ctx, topic, kafka.Message{
-		// 			Key:   []byte(incoming.TransactionId),
-		// 			Value: responseBytes,
-		// 		})
-		// 		if err != nil {
-		// 			log.Printf("Error writing message to %s: %v\n", topic, err)
-		// 			continue
-		// 		}
-		// 		log.Printf("Message sent to %s: %s\n", topic, string(responseBytes))
-
-		// 	default:
-		// 		log.Printf("Received unsupported message format: %v\n", incoming)
-		// 	}
-		// }
+		log.Printf("Message sent to %s: %s\n", nextTopic, string(responseBytes))
 	}
 }

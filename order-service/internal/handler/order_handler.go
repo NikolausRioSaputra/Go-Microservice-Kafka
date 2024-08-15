@@ -6,6 +6,7 @@ import (
 	"order-service/internal/usecase"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type OrderHandler struct {
@@ -22,6 +23,7 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	orderRequest.TransactionID = uuid.New().String()
 
 	err := h.useCase.ProcessOrder(c.Request.Context(), orderRequest)
 	if err != nil {
@@ -30,5 +32,8 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 	}
 
 	// c.JSON(http.StatusOK, gin.H{"status": "Order processed successfully"})
-	c.JSON(http.StatusOK, gin.H{"message": "Order placed successfully", "order": orderRequest})
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Order placed successfully",
+		"order":   orderRequest,
+	})
 }

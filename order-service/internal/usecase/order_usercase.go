@@ -25,6 +25,7 @@ func NewOrderUseCase(kafkaWriter repository.KafkaWriterRepository, orderRepo rep
 }
 
 func (uc *orderUseCase) ProcessOrder(ctx context.Context, order domain.OrderRequest) error {
+
 	if err := uc.orderRepo.SaveOrder(ctx, order); err != nil {
 		return err
 	}
@@ -33,10 +34,10 @@ func (uc *orderUseCase) ProcessOrder(ctx context.Context, order domain.OrderRequ
 	message := kafka.Message{
 		Key: []byte(order.TransactionID),
 		Value: []byte(`{
-			"orderType": "Buy Package",
+			"orderType": "Buy Item",
 			"transactionId": "` + order.TransactionID + `",
 			"userId": "` + order.UserId + `",
-			"packageId": "` + order.PackageId + `",
+			"itemId": "` + order.ItemId + `",
 			"orderService": "start"}`),
 	}
 
