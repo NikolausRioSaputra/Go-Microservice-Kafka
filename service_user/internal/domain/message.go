@@ -1,17 +1,21 @@
 package domain
 
 type Message struct {
-	OrderType     string  `json:"orderType"`
-	TransactionId string  `json:"transactionId"`
-	UserId        string  `json:"userId"`
-	ItemId        string  `json:"itemId"`
-	OrderAmount   float64 `json:"orderAmount"`
-	PaymentMethod string  `json:"paymentMethod"`
+	OrderType     string `json:"orderType"`
+	OderID        string `json:"orderID"`
+	TransactionId string `json:"transactionId"`
+	UserId        string `json:"userId"`
+	ItemId        string `json:"itemId"`
+	PaymentMethod string `json:"paymentMethod"`
+	OrderAmount   int    `json:"orderAmount"`
 }
 
 type Response struct {
 	OrderType     string `json:"orderType"`
+	OderID        string `json:"orderID"`
 	OrderService  string `json:"orderService"`
+	PaymentMethod string `json:"paymentMethod"`
+	OrderAmount   int    `json:"orderAmount"`
 	TransactionId string `json:"transactionId"`
 	UserId        string `json:"userId"`
 	ItemId        string `json:"itemId"`

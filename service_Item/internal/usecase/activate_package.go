@@ -11,7 +11,7 @@ import (
 
 // Interface ini mendefinisikan kontrak untuk MessageUseCase. Di sini, metode ActivatePackage harus diimplementasikan oleh struct yang mengimplementasi interface ini.
 type MessageUseCase interface {
-	ActivatePackage(ctx context.Context, msg domain.Message) (domain.Response, error)
+	CheckItem(ctx context.Context, msg domain.Message) (domain.Response, error)
 }
 
 type messageUseCase struct{}
@@ -20,7 +20,7 @@ func NewMessageUseCase() MessageUseCase {
 	return &messageUseCase{}
 }
 
-func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Message) (domain.Response, error) {
+func (uc *messageUseCase) CheckItem(ctx context.Context, msg domain.Message) (domain.Response, error) {
 	// Business logic to activate the package
 	apiUrl := "https://packageactivate.free.beeceptor.com"
 	req, err := http.NewRequest("GET", apiUrl, nil)
@@ -47,9 +47,10 @@ func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Messag
 	}
 
 	var apiResponse struct {
-		IsValid bool   `json:"isValid"`
-		Status  string `json:"status"`
-		Message string `json:"message"`
+		IsValid   bool    `json:"isValid"`
+		ItemId    string  `json:"itemId"`
+		ItemName  string  `json:"itemName"`
+		ItemPrice float64 `json:"itemPrice"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
@@ -60,24 +61,32 @@ func (uc *messageUseCase) ActivatePackage(ctx context.Context, msg domain.Messag
 		return domain.Response{
 			OrderType:     msg.OrderType,
 			OrderService:  "validateItem",
+			OderID:        msg.OderID,
 			TransactionId: msg.TransactionId,
 			UserId:        msg.UserId,
 			ItemId:        msg.ItemId,
+			Price:         apiResponse.ItemPrice,
+			OrderAmount:   msg.OrderAmount,
+			PaymentMethod: msg.PaymentMethod,
 			RespCode:      400,
 			RespStatus:    "Failed",
-			RespMessage:   "Item is Empty not found",
+			RespMessage:   apiResponse.ItemName + " is not available",
 		}, nil
 	}
 
 	return domain.Response{
 		OrderType:     msg.OrderType,
 		OrderService:  "validateItem",
+		OderID:        msg.OderID,
 		TransactionId: msg.TransactionId,
 		UserId:        msg.UserId,
 		ItemId:        msg.ItemId,
+		Price:         apiResponse.ItemPrice,
+		OrderAmount:   msg.OrderAmount,
+		PaymentMethod: msg.PaymentMethod,
 		RespCode:      200,
 		RespStatus:    "Success",
-		RespMessage:   "Item is Available",
+		RespMessage:   apiResponse.ItemName + " is available",
 	}, nil
 
 }

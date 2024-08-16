@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"service_paymentProcessing/internal/domain"
 	"time"
@@ -13,7 +14,8 @@ type PaymentUseCase interface {
 	ProcessPayment(ctx context.Context, msg domain.PaymentMessage) (domain.PaymentResponse, error)
 }
 
-type paymentUseCase struct{}
+type paymentUseCase struct {
+}
 
 func NewPaymentUseCase() PaymentUseCase {
 	return &paymentUseCase{}
@@ -22,15 +24,14 @@ func NewPaymentUseCase() PaymentUseCase {
 func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.PaymentMessage) (domain.PaymentResponse, error) {
 
 	apiUrl := "https://paymentprocessing.free.beeceptor.com"
-	_, err := json.Marshal(msg)
+	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
 		return domain.PaymentResponse{}, err
 	}
-
-	req, err := http.NewRequest("POST", apiUrl, nil)
-	if err != nil {
-		return domain.PaymentResponse{}, err
-	}
+	// Tambahkan query parameters atau headers jika diperlukan
+	// q := req.URL.Query()
+	// q.Add("paymentMethod", msg.PaymentMethod)
+	// req.URL.RawQuery = q.Encode()
 
 	// Atur timeout dan buat HTTP client
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -38,6 +39,7 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 	// Panggil API eksternal
 	resp, err := client.Do(req)
 	if err != nil {
+		fmt.Println(err.Error())
 		return domain.PaymentResponse{}, err
 	}
 	defer resp.Body.Close()
@@ -48,12 +50,14 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 	}
 
 	var apiResponse struct {
-		IsSuccess bool   `json:"isSuccess"`
-		Status    string `json:"status"`
-		Message   string `json:"message"`
+		IsSuccess bool    `json:"isSuccess"`
+		Balance   float64 `json:"balance"`
+		Status    string  `json:"status"`
+		Message   string  `json:"message"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
+		fmt.Println(err.Error())
 		return domain.PaymentResponse{}, err
 	}
 
@@ -62,22 +66,34 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 			OrderType:     msg.OrderType,
 			OrderService:  "processPayment",
 			TransactionId: msg.TransactionId,
+			OrderID:       msg.OrderID,
 			UserId:        msg.UserId,
+			Balance:       apiResponse.Balance,
+			PaymentMethod: msg.PaymentMethod,
+			OrderAmount:   msg.OrderAmount,
+			Price:         msg.Price,
 			ItemId:        msg.ItemId,
 			RespCode:      400,
-			RespStatus:    "Failed",
-			RespMessage:   "Payment failed",
+			RespStatus:    apiResponse.Status,
+			RespMessage:   apiResponse.Message,
 		}, nil
 	}
+
+	fmt.Print("ini payment daata", msg)
 
 	return domain.PaymentResponse{
 		OrderType:     msg.OrderType,
 		OrderService:  "processPayment",
+		OrderID:       msg.OrderID,
 		TransactionId: msg.TransactionId,
 		UserId:        msg.UserId,
+		Balance:       apiResponse.Balance,
+		Price:         msg.Price,
+		OrderAmount:   msg.OrderAmount,
+		PaymentMethod: msg.PaymentMethod,
 		ItemId:        msg.ItemId,
 		RespCode:      200,
-		RespStatus:    "Success",
-		RespMessage:   "Payment processed successfully",
+		RespStatus:    apiResponse.Status,
+		RespMessage:   apiResponse.Message,
 	}, nil
 }

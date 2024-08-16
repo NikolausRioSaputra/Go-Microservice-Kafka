@@ -1,24 +1,31 @@
 package domain
 
 // Struct Message digunakan untuk merepresentasikan data pesan yang diterima.
-
-// Struct Message digunakan untuk merepresentasikan data pesan yang diterima.
 type PaymentMessage struct {
 	OrderType     string  `json:"orderType"`
+	OrderService  string  `json:"orderService"`
 	TransactionId string  `json:"transactionId"`
+	OrderID       string  `json:"orderID"`
 	UserId        string  `json:"userId"`
+	Price         float64 `json:"price"`
 	ItemId        string  `json:"itemId"`
-	OrderAmount   float64 `json:"orderAmount"`
 	PaymentMethod string  `json:"paymentMethod"`
+	OrderAmount   int     `json:"orderAmount"`
 }
 
+// Struct Message digunakan untuk merepresentasikan data pesan yang diterima.
 type PaymentResponse struct {
-	OrderType     string `json:"orderType"`
-	OrderService  string `json:"orderService"`
-	TransactionId string `json:"transactionId"`
-	UserId        string `json:"userId"`
-	ItemId        string `json:"itemId"`
-	RespCode      int    `json:"respCode"`
-	RespStatus    string `json:"respStatus"`
-	RespMessage   string `json:"respMessage"`
+	OrderType     string  `json:"orderType"`
+	OrderService  string  `json:"orderService"`
+	Price         float64 `json:"price"`
+	TransactionId string  `json:"transactionId"`
+	OrderID       string  `json:"orderID"`
+	PaymentMethod string  `json:"paymentMethod"`
+	Balance       float64 `json:"balance"`
+	UserId        string  `json:"userId"`
+	OrderAmount   int     `json:"orderAmount"`
+	ItemId        string  `json:"itemId"`
+	RespCode      int     `json:"respCode"`
+	RespStatus    string  `json:"respStatus"`
+	RespMessage   string  `json:"respMessage"`
 }

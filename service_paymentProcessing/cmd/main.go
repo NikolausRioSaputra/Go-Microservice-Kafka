@@ -7,6 +7,7 @@ import (
 	"service_paymentProcessing/internal/repository"
 	"service_paymentProcessing/internal/usecase"
 )
+
 func main() {
 	// Initialize Kafka Reader and Writer Repositories
 	reader := repository.NewKafkaReaderRepository([]string{"localhost:29092"}, "topic_processPayment", "my-consumer-group")

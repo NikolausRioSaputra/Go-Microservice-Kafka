@@ -48,7 +48,6 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 	var apiResponse struct {
 		IsValid bool   `json:"isValid"`
 		Status  string `json:"status"`
-		// Balance  float64 `json:"balance"`
 		Message string `json:"message"`
 	}
 
@@ -62,23 +61,29 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 		return domain.Response{
 			OrderType:     msg.OrderType,
 			OrderService:  "validateUser",
+			OderID:        msg.OderID,
 			TransactionId: msg.TransactionId,
 			UserId:        msg.UserId,
 			ItemId:        msg.ItemId,
+			OrderAmount:   msg.OrderAmount,
+			PaymentMethod: msg.PaymentMethod,
 			RespCode:      400,
-			RespStatus:    "Failed",
-			RespMessage:   "User is not valid",
+			RespStatus:    apiResponse.Status,
+			RespMessage:   apiResponse.Message,
 		}, nil
 	}
 
 	return domain.Response{
 		OrderType:     msg.OrderType,
 		OrderService:  "validateUser",
+		OderID:        msg.OderID,
 		TransactionId: msg.TransactionId,
 		UserId:        msg.UserId,
 		ItemId:        msg.ItemId,
+		OrderAmount:   msg.OrderAmount,
+		PaymentMethod: msg.PaymentMethod,
 		RespCode:      200,
-		RespStatus:    "Success",
-		RespMessage:   "User is valid",
+		RespStatus:    apiResponse.Status,
+		RespMessage:   apiResponse.Message,
 	}, nil
 }

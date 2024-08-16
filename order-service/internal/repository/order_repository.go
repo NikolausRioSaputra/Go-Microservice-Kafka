@@ -7,7 +7,7 @@ import (
 )
 
 type OrderRepository interface {
-	SaveOrder(ctx context.Context, order domain.OrderRequest) error
+	SaveOrder(ctx context.Context, order domain.OrderRequest) (domain.OrderRequest, error)
 }
 
 type orderRepository struct {
@@ -20,17 +20,22 @@ func NewOrderRepository(db *sql.DB) OrderRepository {
 	}
 }
 
-func (r *orderRepository) SaveOrder(ctx context.Context, order domain.OrderRequest) error {
+func (r *orderRepository) SaveOrder(ctx context.Context, order domain.OrderRequest) (domain.OrderRequest, error) {
 	query := `INSERT INTO orders (order_type, transaction_id, user_id, item_id, order_amount, payment_method)
-              VALUES ($1, $2, $3, $4, $5, $6)`
+              VALUES ($1, $2, $3, $4, $5, $6)
+			  RETURNING id`
 
-	_, err := r.DB.ExecContext(ctx, query,
+	err := r.DB.QueryRowContext(ctx, query,
 		order.OrderType,
 		order.TransactionID,
 		order.UserId,
 		order.ItemId,
-		order.OrderAmount,   // Pastikan ada OrderAmount dalam domain.OrderRequest
-		order.PaymentMethod) // Pastikan ada PaymentMethod dalam domain.OrderRequest
+		order.OrderAmount,                        // Pastikan ada OrderAmount dalam domain.OrderRequest
+		order.PaymentMethod).Scan(&order.OrderID) // Pastikan ada PaymentMethod dalam domain.OrderRequest
 
-	return err
+	if err != nil {
+		return domain.OrderRequest{}, err
+	}
+
+	return order, nil
 }

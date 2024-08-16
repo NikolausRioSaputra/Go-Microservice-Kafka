@@ -38,7 +38,7 @@ func (mh *MessageHandler) ProcessMessages(ctx context.Context) {
 			continue
 		}
 
-		response, err := mh.useCase.ActivatePackage(ctx, msg)
+		response, err := mh.useCase.CheckItem(ctx, msg)
 		// msg kemudian diproses menggunakan useCase untuk melakukan aktivasi paket. Jika terjadi kesalahan dalam logika bisnis, error akan dilog dan iterasi akan dilanjutkan.
 		if err != nil {
 			log.Printf("Error activating package: %s\n", err)

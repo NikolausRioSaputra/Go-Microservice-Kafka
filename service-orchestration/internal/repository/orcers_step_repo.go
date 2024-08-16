@@ -7,7 +7,7 @@ import (
 
 type OcresRepository interface {
 	ViewTopic(orderType, orderService string) (string, error)
-	SaveTransaction(transactionID, orderType, orderService, topic, stepStatus string) (int, error)
+	SaveTransaction(transactionID, orderID, orderType, orderService, topic, stepStatus string) (int, error)
 }
 
 type ocresRepository struct {
@@ -33,15 +33,15 @@ func (repo *ocresRepository) ViewTopic(orderType string, orderService string) (s
 	return topic, nil
 }
 
-func (repo *ocresRepository) SaveTransaction(transactionID, orderType, orderService, topic, stepStatus string) (int, error) {
+func (repo *ocresRepository) SaveTransaction(transactionID, orderID, orderType, orderService, topic, stepStatus string) (int, error) {
 	var id int
 	query := `
-		INSERT INTO t_transactions (transaction_id, order_type, order_service, topic, step_status)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO t_transactions (transaction_id, order_id, order_type, order_service, topic, step_status)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id`
 
 	// Menggunakan QueryRow untuk menyimpan data dan mengambil id yang baru saja di-generate
-	err := repo.DB.QueryRow(query, transactionID, orderType, orderService, topic, stepStatus).Scan(&id)
+	err := repo.DB.QueryRow(query, transactionID, orderID, orderType, orderService, topic, stepStatus).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("error saving transaction: %v", err)
 	}
