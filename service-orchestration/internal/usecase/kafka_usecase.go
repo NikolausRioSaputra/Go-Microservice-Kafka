@@ -111,3 +111,4 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 		log.Printf("Message sent to %s: %s\n", nextTopic, string(responseBytes))
 	}
 }
+

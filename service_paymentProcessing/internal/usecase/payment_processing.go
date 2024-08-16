@@ -29,9 +29,9 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 		return domain.PaymentResponse{}, err
 	}
 	// Tambahkan query parameters atau headers jika diperlukan
-	// q := req.URL.Query()
-	// q.Add("paymentMethod", msg.PaymentMethod)
-	// req.URL.RawQuery = q.Encode()
+	q := req.URL.Query()
+	q.Add("paymentMethod", msg.PaymentMethod)
+	req.URL.RawQuery = q.Encode()
 
 	// Atur timeout dan buat HTTP client
 	client := &http.Client{Timeout: 5 * time.Second}
@@ -50,7 +50,7 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 	}
 
 	var apiResponse struct {
-		IsSuccess bool    `json:"isSuccess"`
+		// IsSuccess bool    `json:"isSuccess"`
 		Balance   float64 `json:"balance"`
 		Status    string  `json:"status"`
 		Message   string  `json:"message"`
@@ -61,7 +61,9 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 		return domain.PaymentResponse{}, err
 	}
 
-	if !apiResponse.IsSuccess {
+	totalPrice := float64(msg.OrderAmount) * msg.Price
+
+	if apiResponse.Balance < totalPrice {
 		return domain.PaymentResponse{
 			OrderType:     msg.OrderType,
 			OrderService:  "processPayment",
@@ -79,15 +81,13 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 		}, nil
 	}
 
-	fmt.Print("ini payment daata", msg)
-
 	return domain.PaymentResponse{
 		OrderType:     msg.OrderType,
 		OrderService:  "processPayment",
 		OrderID:       msg.OrderID,
 		TransactionId: msg.TransactionId,
 		UserId:        msg.UserId,
-		Balance:       apiResponse.Balance,
+		Balance:       apiResponse.Balance - totalPrice,
 		Price:         msg.Price,
 		OrderAmount:   msg.OrderAmount,
 		PaymentMethod: msg.PaymentMethod,

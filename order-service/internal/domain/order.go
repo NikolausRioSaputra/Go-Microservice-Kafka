@@ -8,5 +8,5 @@ type OrderRequest struct {
 	UserId        string `json:"userId" binding:"required"`
 	ItemId        string `json:"itemId" binding:"required"`
 	OrderAmount   int    `json:"orderAmount" binding:"required"`
-	PaymentMethod string `json:"paymentMethod" binding:"required"`
+	PaymentMethod string `json:"paymentMethod"`
 }
