@@ -64,15 +64,9 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 			log.Printf("Error while retrieving topic: %v\n", err)
 			continue
 		}
+
 		// Simpan transaksi ke dalam database dengan status "PROCESSED"
-		transactionID, err := uc.saveTransaction.SaveTransaction(
-			incoming.TransactionId,
-			incoming.OderID,
-			incoming.OrderType,
-			incoming.OrderService,
-			nextTopic,
-			"SUCCESS",
-		)
+		transactionID, err := uc.saveTransaction.SaveTransaction(incoming, nextTopic, "SUCCESS")
 		if err != nil {
 			log.Printf("Error saving transaction: %v\n", err)
 			continue
@@ -81,14 +75,10 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 
 		// Periksa apakah langkah berikutnya adalah "finish"
 		if nextTopic == "finish" {
-			uc.saveTransaction.SaveTransaction(
-				incoming.TransactionId,
-				incoming.OderID,
-				incoming.OrderType,
-				incoming.OrderService,
-				nextTopic,
-				"COMPLETED",
-			)
+			_, err := uc.saveTransaction.SaveTransaction(incoming, nextTopic, "COMPLETED")
+			if err != nil {
+				log.Printf("Error saving final transaction: %v\n", err)
+			}
 			log.Printf("Transaction ID %s for order type '%s' is COMPLETED\n", incoming.TransactionId, incoming.OrderType)
 			continue
 		}
@@ -111,4 +101,3 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 		log.Printf("Message sent to %s: %s\n", nextTopic, string(responseBytes))
 	}
 }
-

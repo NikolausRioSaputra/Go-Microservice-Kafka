@@ -2,12 +2,14 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"service-orchestration/m/internal/domain"
 )
 
 type OcresRepository interface {
 	ViewTopic(orderType, orderService string) (string, error)
-	SaveTransaction(transactionID, orderID, orderType, orderService, topic, stepStatus string) (int, error)
+	SaveTransaction(message domain.Message, topic, stepStatus string) (int, error)
 }
 
 type ocresRepository struct {
@@ -33,15 +35,43 @@ func (repo *ocresRepository) ViewTopic(orderType string, orderService string) (s
 	return topic, nil
 }
 
-func (repo *ocresRepository) SaveTransaction(transactionID, orderID, orderType, orderService, topic, stepStatus string) (int, error) {
+func (repo *ocresRepository) SaveTransaction(message domain.Message, topic, stepStatus string) (int, error) {
 	var id int
 	query := `
-		INSERT INTO t_transactions (transaction_id, order_id, order_type, order_service, topic, step_status)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO t_transactions (
+			transaction_id, order_id, order_type, order_service, topic, step_status,
+			balance, payment_method, order_amount, price, user_id, item_id,
+			resp_code, resp_status, resp_message, payload
+		)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 		RETURNING id`
 
-	// Menggunakan QueryRow untuk menyimpan data dan mengambil id yang baru saja di-generate
-	err := repo.DB.QueryRow(query, transactionID, orderID, orderType, orderService, topic, stepStatus).Scan(&id)
+	// Serialize the entire message to JSON for the payload column
+	payload, err := json.Marshal(message)
+	if err != nil {
+		return 0, fmt.Errorf("error serializing payload: %v", err)
+	}
+
+	err = repo.DB.QueryRow(
+		query,
+		message.TransactionId,
+		message.OderID,
+		message.OrderType,
+		message.OrderService,
+		topic,
+		stepStatus,
+		message.Balance,
+		message.PaymentMethod,
+		message.OrderAmount,
+		message.Price,
+		message.UserId,
+		message.ItemId,
+		message.RespCode,
+		message.RespStatus,
+		message.RespMessage,
+		payload,
+	).Scan(&id)
+
 	if err != nil {
 		return 0, fmt.Errorf("error saving transaction: %v", err)
 	}
