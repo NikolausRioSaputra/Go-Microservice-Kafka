@@ -61,3 +61,43 @@ func (uc *TransactionUseCase) UpdateItemIdAndSendKafkaMessage(transactionId, new
 
     return nil
 }
+
+func (uc *TransactionUseCase) UpdatePaymentAndSendKafkaMessage(transactionId, newPayment string) error {
+    // Fetch the existing transaction
+    transaction, err := uc.repo.GetTransactionByID(transactionId)
+    if err != nil {
+        return err
+    }
+
+    // Unmarshal the JSON payload
+    var payload map[string]interface{}
+    if err := json.Unmarshal([]byte(transaction.Payload), &payload); err != nil {
+        return err
+    }
+
+    // Update the payment method
+    payload["paymentMethod"] = newPayment
+
+    // Marshal the payload back to JSON
+    updatedPayload, err := json.Marshal(payload)
+    if err != nil {
+        return fmt.Errorf("error marshaling updated payload: %v", err)
+    }
+
+    // Update the payload in the database
+    if err := uc.repo.UpdateTransactionPayload(transactionId, string(updatedPayload), "processPayment"); err != nil {
+        return fmt.Errorf("error updating transaction payload: %v", err)
+    }
+
+    // Send a message to Kafka
+    message := kafka.Message{
+        Key:   []byte(transactionId),
+        Value: updatedPayload,
+    }
+
+    if err := uc.kafkaWriter.WriteMessage(context.Background(), "topic_validateItem", message); err != nil {
+        return err
+    }
+
+    return nil
+}

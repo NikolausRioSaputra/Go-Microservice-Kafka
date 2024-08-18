@@ -15,6 +15,7 @@ type OcresRepository interface {
 	UpdateTransactionItemId(transactionId, newItemId string) error
 	GetTransactionByID(transactionId string) (*domain.Message, error)
 	UpdateTransactionPayload(transactionId, updatedPayload, newOrderService string) error
+	UpdateTransactionPayment(transactionId, newPayment string) error
 }
 
 type ocresRepository struct {
@@ -131,45 +132,55 @@ func (repo *ocresRepository) UpdateTransactionItemId(transactionId, newItemId st
 
 	return nil
 }
+func (repo *ocresRepository) UpdateTransactionPayment(transactionId, newPayment string) error {
+    query := `UPDATE t_transactions SET payment_method = $1 WHERE transaction_id = $2`
 
-func (repo *ocresRepository) UpdateTransactionPayload(transactionId, updatedPayload, newOrderService string) error {
-    query := `UPDATE t_transactions SET payload = $1, order_service = $2 WHERE transaction_id = $3`
-
-    _, err := repo.DB.Exec(query, updatedPayload, newOrderService, transactionId)
+    _, err := repo.DB.Exec(query, newPayment, transactionId)
     if err != nil {
-        return fmt.Errorf("error updating transaction payload: %v", err)
+        return fmt.Errorf("error updating transaction payment method: %v", err)
     }
 
     return nil
 }
 
+func (repo *ocresRepository) UpdateTransactionPayload(transactionId, updatedPayload, newOrderService string) error {
+	query := `UPDATE t_transactions SET payload = $1, order_service = $2 WHERE transaction_id = $3`
+
+	_, err := repo.DB.Exec(query, updatedPayload, newOrderService, transactionId)
+	if err != nil {
+		return fmt.Errorf("error updating transaction payload: %v", err)
+	}
+
+	return nil
+}
+
 func (repo *ocresRepository) GetTransactionByID(transactionId string) (*domain.Message, error) {
-    var transaction domain.Message
-    query := `SELECT transaction_id, order_id, order_type, order_service, balance, payment_method, order_amount, price, user_id, item_id, resp_code, resp_status, resp_message, payload
+	var transaction domain.Message
+	query := `SELECT transaction_id, order_id, order_type, order_service, balance, payment_method, order_amount, price, user_id, item_id, resp_code, resp_status, resp_message, payload
               FROM t_transactions
               WHERE transaction_id = $1`
-    err := repo.DB.QueryRow(query, transactionId).Scan(
-        &transaction.TransactionId,
-        &transaction.OderID,
-        &transaction.OrderType,
-        &transaction.OrderService,
-        &transaction.Balance,
-        &transaction.PaymentMethod,
-        &transaction.OrderAmount,
-        &transaction.Price,
-        &transaction.UserId,
-        &transaction.ItemId,
-        &transaction.RespCode,
-        &transaction.RespStatus,
-        &transaction.RespMessage,
-        &transaction.Payload,
-    )
-    if err != nil {
-        return nil, fmt.Errorf("error getting transaction: %v", err)
-    }
+	err := repo.DB.QueryRow(query, transactionId).Scan(
+		&transaction.TransactionId,
+		&transaction.OderID,
+		&transaction.OrderType,
+		&transaction.OrderService,
+		&transaction.Balance,
+		&transaction.PaymentMethod,
+		&transaction.OrderAmount,
+		&transaction.Price,
+		&transaction.UserId,
+		&transaction.ItemId,
+		&transaction.RespCode,
+		&transaction.RespStatus,
+		&transaction.RespMessage,
+		&transaction.Payload,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error getting transaction: %v", err)
+	}
 
-    // Log the retrieved transaction for debugging
-    log.Printf("Retrieved transaction: %+v", transaction)
+	// Log the retrieved transaction for debugging
+	log.Printf("Retrieved transaction: %+v", transaction)
 
-    return &transaction, nil
+	return &transaction, nil
 }

@@ -51,3 +51,23 @@ func (h *TransactionHandler) UpdateItemIdAndResend(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Transaction updated and message resent"})
 }
+
+func (h *TransactionHandler) UpdatePaymentAndResend(c *gin.Context) {
+    transactionId := c.Param("transactionId")
+    newPayment := c.Query("paymentMethod")
+
+    if newPayment == "" {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "New PaymentMethod is required"})
+        return
+    }
+
+    transactionUseCase := usecase.NewTransactionUseCase(h.repo, h.kafkaWriter)
+    err := transactionUseCase.UpdatePaymentAndSendKafkaMessage(transactionId, newPayment)
+    if err != nil {
+        log.Printf("Error updating and resending transaction: %v\n", err)
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update and resend transaction"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Transaction updated and message resent"})
+}

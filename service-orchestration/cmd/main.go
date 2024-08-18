@@ -55,6 +55,7 @@ func main() {
 	router := gin.Default()
 	router.GET("/transactions", transactionHandler.GetAllTransactions) // Menggunakan GetAllTransactions handler
 	router.PUT("/transactions/:transactionId/resend", transactionHandler.UpdateItemIdAndResend)
+	router.PUT("/transactions/:transactionId/resend-payment", transactionHandler.UpdatePaymentAndResend)
 
 	// Jalankan HTTP server dalam goroutine
 	go func() {
