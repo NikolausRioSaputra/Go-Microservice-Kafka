@@ -78,6 +78,15 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 			if err != nil {
 				log.Printf("Error saving failed transaction: %v\n", err)
 			}
+
+			err = uc.kafkaWriter.WriteMessage(ctx, "order_topic", kafka.Message{
+				Key:   []byte(incoming.TransactionId),
+				Value: message.Value,
+			})
+			if err != nil {
+				log.Printf("Error writing message to order_topic: %v\n", err)
+			}
+
 			log.Printf("Transaction ID %s for order type '%s' is FAILED\n", incoming.TransactionId, incoming.OrderType)
 			continue
 		}

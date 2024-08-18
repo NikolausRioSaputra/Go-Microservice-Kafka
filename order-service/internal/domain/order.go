@@ -9,4 +9,5 @@ type OrderRequest struct {
 	ItemId        string `json:"itemId" binding:"required"`
 	OrderAmount   int    `json:"orderAmount" binding:"required"`
 	PaymentMethod string `json:"paymentMethod"`
+	Status        string `json:"-"`
 }

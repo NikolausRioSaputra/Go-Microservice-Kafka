@@ -8,7 +8,6 @@ import (
 	"service-orchestration/m/internal/repository"
 	"service-orchestration/m/internal/usecase"
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -45,7 +44,6 @@ func main() {
 	// Memulai Kafka consumer dalam goroutine
 	go func() {
 		defer wg.Done()             // Pastikan Done dipanggil setelah fungsi selesai
-		time.Sleep(2 * time.Second) // Delay untuk memberikan waktu Kafka siap
 
 		log.Println("Starting Kafka message consumption...")
 		kafkaUseCase.ConsumeMessages(context.Background())

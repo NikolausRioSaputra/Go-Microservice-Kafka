@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"order-service/internal/handler"
@@ -25,9 +26,10 @@ func main() {
 	var wg sync.WaitGroup
 
 	// Inisialisasi repository dan use case
+	kafkaReader := repository.NewKafkaReader([]string{"localhost:29092"}, "order_topic", "my-consumer-group")
 	kafkaWriter := repository.NewKafkaWriter([]string{"localhost:29092"})
 	orderRepo := repository.NewOrderRepository(database)
-	orderUseCase := usecase.NewOrderUseCase(kafkaWriter, orderRepo)
+	orderUseCase := usecase.NewOrderUseCase(kafkaWriter, orderRepo, kafkaReader)
 	orderHandler := handler.NewOrderHandler(orderUseCase)
 
 	// Inisialisasi Gin dan route
@@ -47,6 +49,16 @@ func main() {
 		if err != nil {
 			log.Fatal("Server failed to start: ", err)
 		}
+	}()
+
+	wg.Add(1)
+
+	// Memulai Kafka consumer dalam goroutine
+	go func() {
+		defer wg.Done() // Pastikan Done dipanggil setelah fungsi selesai
+
+		log.Println("Starting Kafka message consumption...")
+		orderUseCase.ListenForFailedOrders(context.Background())
 	}()
 
 	wg.Wait()
