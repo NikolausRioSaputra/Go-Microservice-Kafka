@@ -3,10 +3,14 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
+
+	// "errors"
 	"net/http"
 	"service-package/internal/domain"
 	"time"
+
+	retryit "github.com/benebobaa/retry-it"
 )
 
 // Interface ini mendefinisikan kontrak untuk MessageUseCase. Di sini, metode ActivatePackage harus diimplementasikan oleh struct yang mengimplementasi interface ini.
@@ -23,28 +27,6 @@ func NewMessageUseCase() MessageUseCase {
 func (uc *messageUseCase) CheckItem(ctx context.Context, msg domain.Message) (domain.Response, error) {
 	// Business logic to activate the package
 	apiUrl := "https://packageactivate.free.beeceptor.com"
-	req, err := http.NewRequest("GET", apiUrl, nil)
-	if err != nil {
-		return domain.Response{}, err
-	}
-	// Tambahkan query parameters atau headers jika diperlukan
-	q := req.URL.Query()
-	q.Add("itemId", msg.ItemId)
-	req.URL.RawQuery = q.Encode()
-
-	// Atur timeout dan buat HTTP client
-	client := &http.Client{Timeout: 5 * time.Second}
-
-	// Panggil API eksternal
-	resp, err := client.Do(req)
-	if err != nil {
-		return domain.Response{}, err
-	}
-	defer resp.Body.Close()
-	// Proses response dari API eksternal
-	if resp.StatusCode != http.StatusOK {
-		return domain.Response{}, errors.New("failed to validate item")
-	}
 
 	var apiResponse struct {
 		IsValid   bool    `json:"isValid"`
@@ -53,8 +35,15 @@ func (uc *messageUseCase) CheckItem(ctx context.Context, msg domain.Message) (do
 		ItemPrice float64 `json:"itemPrice"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return domain.Response{}, err
+	counter := 0
+	err := retryit.Do(ctx, func(ctx context.Context) error {
+		counter++
+		fmt.Println("Attempt: ", counter)
+		return requestCheckItem(ctx, apiUrl, msg.ItemId, &apiResponse)
+	}, retryit.WithInitialDelay(2*time.Second), retryit.WithMaxAttempts(5))
+
+	if err != nil {
+		return domain.Response{}, fmt.Errorf("error making request: %w", err)
 	}
 
 	if !apiResponse.IsValid {
@@ -89,4 +78,38 @@ func (uc *messageUseCase) CheckItem(ctx context.Context, msg domain.Message) (do
 		RespMessage:   apiResponse.ItemName + " is available",
 	}, nil
 
+}
+
+func requestCheckItem(ctx context.Context, url, itemId string, response any) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	client := &http.Client{}
+
+	q := req.URL.Query()
+	q.Add("itemId", itemId)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error making request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("Response Status -> ", resp.StatusCode)
+	if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+		return fmt.Errorf("received status code %d", resp.StatusCode)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&response)
+
+	if err != nil {
+		return fmt.Errorf("error decoding response: %w", err)
+	}
+
+	// Process successful response here
+	fmt.Printf("Request successful with status code: %d\n", resp.StatusCode)
+	return nil
 }

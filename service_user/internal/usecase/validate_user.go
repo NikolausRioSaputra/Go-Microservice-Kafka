@@ -3,10 +3,12 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"time"
 	"user_service/internal/domain"
+
+	retryit "github.com/benebobaa/retry-it"
 )
 
 type MessageUseCase interface {
@@ -22,28 +24,6 @@ func NewMessageUseCase() MessageUseCase {
 func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) (domain.Response, error) {
 
 	apiUrl := "https://uservalidation.free.beeceptor.com"
-	req, err := http.NewRequest("GET", apiUrl, nil)
-	if err != nil {
-		return domain.Response{}, err
-	}
-	// Tambahkan query parameters atau headers jika diperlukan
-	q := req.URL.Query()
-	q.Add("userId", msg.UserId)
-	req.URL.RawQuery = q.Encode()
-
-	// Atur timeout dan buat HTTP client
-	client := &http.Client{Timeout: 5 * time.Second}
-
-	// Panggil API eksternal
-	resp, err := client.Do(req)
-	if err != nil {
-		return domain.Response{}, err
-	}
-	defer resp.Body.Close()
-	// Proses response dari API eksternal
-	if resp.StatusCode != http.StatusOK {
-		return domain.Response{}, errors.New("failed to validate user")
-	}
 
 	var apiResponse struct {
 		IsValid bool   `json:"isValid"`
@@ -51,12 +31,17 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 		Message string `json:"message"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return domain.Response{}, err
+	counter := 0
+	err := retryit.Do(ctx, func(ctx context.Context) error {
+		counter++
+		fmt.Println("Attempt: ", counter)
+		return requestUserValidation(ctx, apiUrl, msg.UserId, &apiResponse)
+	}, retryit.WithInitialDelay(2*time.Second), retryit.WithMaxAttempts(5))
+
+	if err != nil {
+		return domain.Response{}, fmt.Errorf("error making request: %w", err)
 	}
 
-	// Business logic to validate the user
-	// Sesuaikan response berdasarkan hasil validasi
 	if !apiResponse.IsValid {
 		return domain.Response{
 			OrderType:     msg.OrderType,
@@ -86,4 +71,38 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 		RespStatus:    apiResponse.Status,
 		RespMessage:   apiResponse.Message,
 	}, nil
+}
+
+func requestUserValidation(ctx context.Context, url, userId string, response any) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	client := &http.Client{}
+
+	q := req.URL.Query()
+	q.Add("userId", userId)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error making request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("Response Status -> ", resp.StatusCode)
+	if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+		return fmt.Errorf("received status code %d", resp.StatusCode)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&response)
+
+	if err != nil {
+		return fmt.Errorf("error decoding response: %w", err)
+	}
+
+	// Process successful response here
+	fmt.Printf("Request successful with status code: %d\n", resp.StatusCode)
+	return nil
 }

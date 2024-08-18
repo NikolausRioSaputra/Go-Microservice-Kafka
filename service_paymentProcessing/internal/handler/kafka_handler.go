@@ -8,6 +8,7 @@ import (
 	"service_paymentProcessing/internal/repository"
 	"service_paymentProcessing/internal/usecase"
 )
+
 type PaymentMessageHandler struct {
 	useCase     usecase.PaymentUseCase
 	kafkaReader repository.KafkaReaderRepository
@@ -29,7 +30,7 @@ func (pmh *PaymentMessageHandler) ProcessMessages(ctx context.Context) {
 			continue
 		}
 
-		var msg domain.PaymentMessage
+		var msg domain.Message
 		if err := json.Unmarshal(msgBytes, &msg); err != nil {
 			log.Printf("Error parsing message: %s\n", err)
 			continue
@@ -38,7 +39,6 @@ func (pmh *PaymentMessageHandler) ProcessMessages(ctx context.Context) {
 		response, err := pmh.useCase.ProcessPayment(ctx, msg)
 		if err != nil {
 			log.Printf("Error processing payment: %s\n", err)
-			continue
 		}
 
 		responseBytes, err := json.Marshal(response)

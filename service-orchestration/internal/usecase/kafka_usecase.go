@@ -73,6 +73,15 @@ func (uc *kafkaUseCase) ConsumeMessages(ctx context.Context) {
 		}
 		log.Printf("Transaction saved with ID: %d\n", transactionID)
 
+		if incoming.RespStatus == "Failed" {
+			_, err := uc.saveTransaction.SaveTransaction(incoming, nextTopic, "FAILED")
+			if err != nil {
+				log.Printf("Error saving failed transaction: %v\n", err)
+			}
+			log.Printf("Transaction ID %s for order type '%s' is FAILED\n", incoming.TransactionId, incoming.OrderType)
+			continue
+		}
+
 		// Periksa apakah langkah berikutnya adalah "finish"
 		if nextTopic == "finish" {
 			_, err := uc.saveTransaction.SaveTransaction(incoming, nextTopic, "COMPLETED")

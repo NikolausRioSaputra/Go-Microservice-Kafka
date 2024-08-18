@@ -39,7 +39,6 @@ func (mh *MessageHandler) ProcessMessages(ctx context.Context) {
 		response, err := mh.useCase.ValidateUser(ctx, msg)
 		if err != nil {
 			log.Printf("Error validating user: %s\n", err)
-			continue
 		}
 
 		responseBytes, err := json.Marshal(response)

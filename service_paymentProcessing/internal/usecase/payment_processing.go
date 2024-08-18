@@ -3,72 +3,53 @@ package usecase
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"service_paymentProcessing/internal/domain"
 	"time"
+
+	retryit "github.com/benebobaa/retry-it"
 )
 
 type PaymentUseCase interface {
-	ProcessPayment(ctx context.Context, msg domain.PaymentMessage) (domain.PaymentResponse, error)
+	ProcessPayment(ctx context.Context, msg domain.Message) (domain.Response, error)
 }
 
-type paymentUseCase struct {
+type messageUseCase struct {
 }
 
 func NewPaymentUseCase() PaymentUseCase {
-	return &paymentUseCase{}
+	return &messageUseCase{}
 }
 
-func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.PaymentMessage) (domain.PaymentResponse, error) {
-
+func (uc *messageUseCase) ProcessPayment(ctx context.Context, msg domain.Message) (domain.Response, error) {
 	apiUrl := "https://paymentprocessing.free.beeceptor.com"
-	req, err := http.NewRequest("GET", apiUrl, nil)
-	if err != nil {
-		return domain.PaymentResponse{}, err
-	}
-	// Tambahkan query parameters atau headers jika diperlukan
-	q := req.URL.Query()
-	q.Add("paymentMethod", msg.PaymentMethod)
-	req.URL.RawQuery = q.Encode()
-
-	// Atur timeout dan buat HTTP client
-	client := &http.Client{Timeout: 5 * time.Second}
-
-	// Panggil API eksternal
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Println(err.Error())
-		return domain.PaymentResponse{}, err
-	}
-	defer resp.Body.Close()
-
-	// Proses response dari API eksternal
-	if resp.StatusCode != http.StatusOK {
-		return domain.PaymentResponse{}, errors.New("failed to process payment")
-	}
 
 	var apiResponse struct {
-		// IsSuccess bool    `json:"isSuccess"`
-		Balance   float64 `json:"balance"`
-		Status    string  `json:"status"`
-		Message   string  `json:"message"`
+		Balance float64 `json:"balance"`
+		Status  string  `json:"status"`
+		Message string  `json:"message"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		fmt.Println(err.Error())
-		return domain.PaymentResponse{}, err
+	counter := 0
+	err := retryit.Do(ctx, func(ctx context.Context) error {
+		counter++
+		fmt.Println("Payment Processing Attempt: ", counter)
+		return requestProcessPayment(ctx, apiUrl, msg.PaymentMethod, &apiResponse)
+	}, retryit.WithInitialDelay(2*time.Second), retryit.WithMaxAttempts(5))
+
+	if err != nil {
+		return domain.Response{}, fmt.Errorf("error processing payment: %w", err)
 	}
 
 	totalPrice := float64(msg.OrderAmount) * msg.Price
 
 	if apiResponse.Balance < totalPrice {
-		return domain.PaymentResponse{
+		return domain.Response{
 			OrderType:     msg.OrderType,
 			OrderService:  "processPayment",
-			TransactionId: msg.TransactionId,
 			OrderID:       msg.OrderID,
+			TransactionId: msg.TransactionId,
 			UserId:        msg.UserId,
 			Balance:       apiResponse.Balance,
 			PaymentMethod: msg.PaymentMethod,
@@ -76,12 +57,12 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 			Price:         msg.Price,
 			ItemId:        msg.ItemId,
 			RespCode:      400,
-			RespStatus:    apiResponse.Status,
-			RespMessage:   apiResponse.Message,
+			RespStatus:    "Failed",
+			RespMessage:   "Insufficient balance",
 		}, nil
 	}
 
-	return domain.PaymentResponse{
+	return domain.Response{
 		OrderType:     msg.OrderType,
 		OrderService:  "processPayment",
 		OrderID:       msg.OrderID,
@@ -93,7 +74,39 @@ func (uc *paymentUseCase) ProcessPayment(ctx context.Context, msg domain.Payment
 		PaymentMethod: msg.PaymentMethod,
 		ItemId:        msg.ItemId,
 		RespCode:      200,
-		RespStatus:    apiResponse.Status,
+		RespStatus:    "Success",
 		RespMessage:   apiResponse.Message,
 	}, nil
+}
+
+func requestProcessPayment(ctx context.Context, url, paymentMethod string, response any) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	client := &http.Client{}
+
+	q := req.URL.Query()
+	q.Add("paymentMethod", paymentMethod)
+	req.URL.RawQuery = q.Encode()
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error making request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	fmt.Println("Payment Processing Response Status -> ", resp.StatusCode)
+	if resp.StatusCode == 429 || resp.StatusCode >= 500 {
+		return fmt.Errorf("received status code %d", resp.StatusCode)
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	if err != nil {
+		return fmt.Errorf("error decoding response: %w", err)
+	}
+
+	fmt.Printf("Payment processing request successful with status code: %d\n", resp.StatusCode)
+	return nil
 }

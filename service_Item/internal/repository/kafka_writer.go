@@ -9,11 +9,6 @@ import (
 
 type KafkaWriterRepository interface {
 	WriteMessage(ctx context.Context, key, value []byte) error
-	/*
-		ctx: context.Context yang digunakan untuk mengatur pembatalan atau timeout.
-		key: Kunci pesan, biasanya digunakan untuk partisi pesan di Kafka.
-		value: Nilai pesan yang akan dikirim.
-	*/
 	Close() error
 }
 
@@ -31,7 +26,6 @@ func NewKafkaWriterRepository(brokers []string, topic string) KafkaWriterReposit
 }
 
 func (kw *kafkaWriter) WriteMessage(ctx context.Context, key, value []byte) error {
-	//WriteMessages: Fungsi ini digunakan untuk mengirim pesan ke Kafka. Pesan ini dibungkus dalam kafka.Message, yang memiliki Key dan Value
 	err := kw.writer.WriteMessages(ctx, kafka.Message{
 		Key:   key,
 		Value: value,

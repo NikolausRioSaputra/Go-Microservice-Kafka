@@ -15,4 +15,5 @@ type Message struct {
 	RespCode      int     `json:"respCode,omitempty"`
 	RespStatus    string  `json:"respStatus,omitempty"`
 	RespMessage   string  `json:"respMessage,omitempty"`
+	Payload       string  `json:"payload"`
 }
