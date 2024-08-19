@@ -40,7 +40,7 @@ func (uc *messageUseCase) CheckItem(ctx context.Context, msg domain.Message) (do
 		counter++
 		fmt.Println("Attempt: ", counter)
 		return requestCheckItem(ctx, apiUrl, msg.ItemId, &apiResponse)
-	}, retryit.WithInitialDelay(2*time.Second), retryit.WithMaxAttempts(5))
+	}, retryit.WithInitialDelay(1*time.Second), retryit.WithMaxAttempts(5))
 
 	if err != nil {
 		return domain.Response{}, fmt.Errorf("error making request: %w", err)

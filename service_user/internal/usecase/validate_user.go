@@ -36,7 +36,7 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 		counter++
 		fmt.Println("Attempt: ", counter)
 		return requestUserValidation(ctx, apiUrl, msg.UserId, &apiResponse)
-	}, retryit.WithInitialDelay(2*time.Second), retryit.WithMaxAttempts(5))
+	}, retryit.WithInitialDelay(1*time.Second), retryit.WithMaxAttempts(5))
 
 	if err != nil {
 		return domain.Response{}, fmt.Errorf("error making request: %w", err)

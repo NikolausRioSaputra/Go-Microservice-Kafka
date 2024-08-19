@@ -35,7 +35,7 @@ func (uc *eventUseCase) ProcessEventRegistration(ctx context.Context, req domain
 		counter++
 		fmt.Println("Attempt: ", counter)
 		return requestEventValidation(ctx, apiURL, req.EventName, &apiResponse)
-	}, retryit.WithInitialDelay(2*time.Second), retryit.WithMaxAttempts(2))
+	}, retryit.WithInitialDelay(1*time.Second), retryit.WithMaxAttempts(2))
 
 	if err != nil {
 		return domain.EventResponse{}, fmt.Errorf("error validating event: %w", err)
@@ -66,7 +66,7 @@ func (uc *eventUseCase) ProcessEventRegistration(ctx context.Context, req domain
 		PaymentMethod: req.PaymentMethod,
 		Amount:        req.Amount,
 		RespCode:      200,
-		RespStatus:    "success",
+		RespStatus:    "Success",
 		RespMessage:   "success register event",
 	}, nil
 }

@@ -21,4 +21,5 @@ type EventRegistrationRequest struct {
 	TransactionID string `json:"-"`
 	Amount        int    `json:"amount" binding:"required"`
 	PaymentMethod string `json:"paymentMethod"`
+	Status        string `json:"-"`
 }

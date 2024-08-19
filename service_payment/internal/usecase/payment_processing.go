@@ -37,7 +37,7 @@ func (uc *messageUseCase) ProcessPayment(ctx context.Context, msg domain.Message
 		counter++
 		fmt.Println("Payment Processing Attempt: ", counter)
 		return requestProcessPayment(ctx, apiUrl, msg.PaymentMethod, &apiResponse)
-	}, retryit.WithInitialDelay(2*time.Second), retryit.WithMaxAttempts(5))
+	}, retryit.WithInitialDelay(1*time.Second), retryit.WithMaxAttempts(5))
 
 	if err != nil {
 		return domain.Response{}, fmt.Errorf("error processing payment: %w", err)

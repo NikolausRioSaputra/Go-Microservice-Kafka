@@ -54,7 +54,7 @@ func (uc *TransactionUseCase) UpdateItemIdAndSendKafkaMessage(transactionId, new
 		Value: updatedPayload,
 	}
 
-	if err := uc.kafkaWriter.WriteMessage(context.Background(), "topic_validateItem", message); err != nil {
+	if err := uc.kafkaWriter.WriteMessage(context.Background(), "topic_validate_item", message); err != nil {
 		return err
 	}
 
@@ -94,7 +94,7 @@ func (uc *TransactionUseCase) UpdatePaymentAndSendKafkaMessage(transactionId, ne
 		Value: updatedPayload,
 	}
 
-	if err := uc.kafkaWriter.WriteMessage(context.Background(), "topic_validateItem, ", message); err != nil {
+	if err := uc.kafkaWriter.WriteMessage(context.Background(), "topic_validate_item, ", message); err != nil {
 		return err
 	}
 

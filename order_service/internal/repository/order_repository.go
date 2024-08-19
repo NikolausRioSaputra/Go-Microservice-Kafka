@@ -45,8 +45,8 @@ func (r *orderRepository) SaveOrder(ctx context.Context, order domain.OrderReque
 }
 
 func (r *orderRepository) SaveEventRegistration(ctx context.Context, registration domain.EventRegistrationRequest) (domain.EventRegistrationRequest, error) {
-	query := `INSERT INTO event_registrations (event_name, transaction_id, user_id, service_type, amount, payment_method)
-              VALUES ($1, $2, $3, $4, $5, $6)
+	query := `INSERT INTO event_registrations (event_name, transaction_id, user_id, service_type, amount, payment_method, status)
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
               RETURNING id`
 
 	err := r.DB.QueryRowContext(ctx, query,
@@ -55,12 +55,13 @@ func (r *orderRepository) SaveEventRegistration(ctx context.Context, registratio
 		registration.UserID,
 		registration.OrderType,
 		registration.Amount,
-		registration.PaymentMethod).Scan(&registration.OrderID)
+		registration.PaymentMethod, "created").Scan(&registration.OrderID)
 
 	if err != nil {
 		return domain.EventRegistrationRequest{}, err
 	}
 
+	registration.Status = "created"
 	return registration, nil
 }
 
