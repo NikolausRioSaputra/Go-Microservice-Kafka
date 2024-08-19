@@ -3,8 +3,9 @@ package domain
 // struct ini di gunakan untuk menangani pesan kafka yang masuk
 type Message struct {
 	OrderType     string  `json:"orderType"`
+	EventName     string  `json:"eventName"`
 	OrderService  string  `json:"orderService,omitempty"`
-	OderID        string  `json:"orderID"`
+	OrderID       string  `json:"orderID"`
 	Balance       float64 `json:"balance"`
 	TransactionId string  `json:"transactionId"`
 	PaymentMethod string  `json:"paymentMethod"`
@@ -16,4 +17,5 @@ type Message struct {
 	RespStatus    string  `json:"respStatus,omitempty"`
 	RespMessage   string  `json:"respMessage,omitempty"`
 	Payload       string  `json:"payload"`
+	Amount        int     `json:"amount"`
 }

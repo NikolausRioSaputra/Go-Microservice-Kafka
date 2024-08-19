@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"service_paymentProcessing/internal/domain"
 	"time"
@@ -42,8 +43,18 @@ func (uc *messageUseCase) ProcessPayment(ctx context.Context, msg domain.Message
 		return domain.Response{}, fmt.Errorf("error processing payment: %w", err)
 	}
 
-	totalPrice := float64(msg.OrderAmount) * msg.Price
+	var totalPrice float64
+	if msg.OrderType == "Register Event" {
+		totalPrice = float64(msg.Amount)
+	}
 
+	if msg.OrderType == "Buy Item" {
+		// Calculate total price based on order amount and price
+		totalPrice = float64(msg.OrderAmount) * msg.Price
+	}
+
+	log.Println("total price: ", totalPrice)
+	log.Println("amount: ", msg.Amount)
 	if apiResponse.Balance < totalPrice {
 		return domain.Response{
 			OrderType:     msg.OrderType,
@@ -54,6 +65,7 @@ func (uc *messageUseCase) ProcessPayment(ctx context.Context, msg domain.Message
 			Balance:       apiResponse.Balance,
 			PaymentMethod: msg.PaymentMethod,
 			OrderAmount:   msg.OrderAmount,
+			Amount:        msg.Amount,
 			Price:         msg.Price,
 			ItemId:        msg.ItemId,
 			RespCode:      400,
@@ -69,6 +81,7 @@ func (uc *messageUseCase) ProcessPayment(ctx context.Context, msg domain.Message
 		TransactionId: msg.TransactionId,
 		UserId:        msg.UserId,
 		Balance:       apiResponse.Balance - totalPrice,
+		Amount:        msg.Amount,
 		Price:         msg.Price,
 		OrderAmount:   msg.OrderAmount,
 		PaymentMethod: msg.PaymentMethod,

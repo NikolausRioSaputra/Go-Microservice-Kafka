@@ -3,8 +3,10 @@ package domain
 // struct ini di gunakan untuk kirim pesan
 type Message struct {
 	OrderType     string `json:"orderType"`
+	EventName     string `json:"eventName"`
 	OrderService  string `json:"orderService,omitempty"`
 	OderID        string `json:"orderID"`
+	Amount        int    `json:"amount"`
 	PaymentMethod string `json:"paymentMethod"`
 	OrderAmount   int    `json:"orderAmount"`
 	TransactionId string `json:"transactionId"`

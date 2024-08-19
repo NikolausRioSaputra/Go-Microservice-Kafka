@@ -11,6 +11,7 @@ type Message struct {
 	ItemId        string  `json:"itemId"`
 	PaymentMethod string  `json:"paymentMethod"`
 	OrderAmount   int     `json:"orderAmount"`
+	Amount        int     `json:"amount"`
 }
 
 // Struct Message digunakan untuk merepresentasikan data pesan yang diterima.
@@ -28,4 +29,5 @@ type Response struct {
 	RespCode      int     `json:"respCode"`
 	RespStatus    string  `json:"respStatus"`
 	RespMessage   string  `json:"respMessage"`
+	Amount        int     `json:"amount"`
 }

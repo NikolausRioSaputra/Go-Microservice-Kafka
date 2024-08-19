@@ -55,6 +55,7 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 			RespCode:      400,
 			RespStatus:    apiResponse.Status,
 			RespMessage:   apiResponse.Message,
+			Amount:        msg.Amount,
 		}, nil
 	}
 
@@ -70,6 +71,7 @@ func (uc *messageUseCase) ValidateUser(ctx context.Context, msg domain.Message) 
 		RespCode:      200,
 		RespStatus:    apiResponse.Status,
 		RespMessage:   apiResponse.Message,
+		Amount:        msg.Amount,
 	}, nil
 }
 

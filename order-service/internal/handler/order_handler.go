@@ -37,3 +37,23 @@ func (h *OrderHandler) CreateOrder(c *gin.Context) {
 		"order":   orderRequest,
 	})
 }
+
+func (h *OrderHandler) RegisterEvent(c *gin.Context) {
+    var registrationRequest domain.EventRegistrationRequest
+    if err := c.ShouldBindJSON(&registrationRequest); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+    registrationRequest.TransactionID = uuid.New().String()
+
+    err := h.useCase.ProcessEventRegistration(c.Request.Context(), registrationRequest)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register event"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "message": "Event registration successful",
+        "registration": registrationRequest,
+    })
+}

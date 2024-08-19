@@ -24,6 +24,7 @@ func InitializeRoutes(router *gin.Engine, orderHandler *handler.OrderHandler) {
 	orderRoutes.Use(middleware.AuthMiddleware(), middleware.LoggingMiddleware())
 	{
 		orderRoutes.POST("/item", orderHandler.CreateOrder)
+		orderRoutes.POST("/register", orderHandler.RegisterEvent)
 		// Tambahkan rute terkait order lainnya di sini
 	}
 

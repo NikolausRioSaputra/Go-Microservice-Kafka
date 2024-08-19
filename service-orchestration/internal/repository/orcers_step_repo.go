@@ -61,7 +61,7 @@ func (repo *ocresRepository) SaveTransaction(message domain.Message, topic, step
 	err = repo.DB.QueryRow(
 		query,
 		message.TransactionId,
-		message.OderID,
+		message.OrderID,
 		message.OrderType,
 		message.OrderService,
 		topic,
@@ -99,7 +99,7 @@ func (repo *ocresRepository) GetAllTransactions() ([]domain.Message, error) {
 		var transaction domain.Message
 		err := rows.Scan(
 			&transaction.TransactionId,
-			&transaction.OderID,
+			&transaction.OrderID,
 			&transaction.OrderType,
 			&transaction.OrderService,
 			&transaction.Balance,
@@ -161,7 +161,7 @@ func (repo *ocresRepository) GetTransactionByID(transactionId string) (*domain.M
               WHERE transaction_id = $1`
 	err := repo.DB.QueryRow(query, transactionId).Scan(
 		&transaction.TransactionId,
-		&transaction.OderID,
+		&transaction.OrderID,
 		&transaction.OrderType,
 		&transaction.OrderService,
 		&transaction.Balance,

@@ -14,6 +14,7 @@ import (
 type OrderUseCase interface {
 	ProcessOrder(ctx context.Context, order domain.OrderRequest) error
 	ListenForFailedOrders(ctx context.Context)
+	ProcessEventRegistration(ctx context.Context, registration domain.EventRegistrationRequest) error
 }
 
 type orderUseCase struct {
@@ -61,6 +62,41 @@ func (uc *orderUseCase) ProcessOrder(ctx context.Context, order domain.OrderRequ
 	// Kirim pesan ke topik Kafka untuk validasi user
 	message := kafka.Message{
 		Key:   []byte(order.TransactionID),
+		Value: bytes,
+	}
+
+	return uc.kafkaWriter.WriteMessage(ctx, "topic_0", message)
+}
+func (uc *orderUseCase) ProcessEventRegistration(ctx context.Context, registration domain.EventRegistrationRequest) error {
+	registration, err := uc.orderRepo.SaveEventRegistration(ctx, registration)
+
+	if err != nil {
+		return err
+	}
+
+	messageSend := domain.Message{
+		OrderType:     "Register Event",
+		OrderService:  "start",
+		OderID:        registration.OrderID,
+		TransactionId: registration.TransactionID,
+		Amount:        registration.Amount,
+		UserId:        registration.UserID,
+		EventName:     registration.EventName,
+		PaymentMethod: registration.PaymentMethod,
+		RespCode:      200,
+		RespStatus:    "success",
+		RespMessage:   "success register event",
+	}
+
+	bytes, err := json.Marshal(messageSend)
+
+	if err != nil {
+		return err
+	}
+
+	// Kirim pesan ke topik Kafka untuk validasi user
+	message := kafka.Message{
+		Key:   []byte(registration.TransactionID),
 		Value: bytes,
 	}
 

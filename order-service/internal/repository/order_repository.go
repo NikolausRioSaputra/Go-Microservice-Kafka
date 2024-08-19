@@ -9,6 +9,7 @@ import (
 type OrderRepository interface {
 	SaveOrder(ctx context.Context, order domain.OrderRequest) (domain.OrderRequest, error)
 	UpdateOrderStatus(ctx context.Context, orderID string, status string) error
+	SaveEventRegistration(ctx context.Context, registration domain.EventRegistrationRequest) (domain.EventRegistrationRequest, error)
 }
 
 type orderRepository struct {
@@ -41,6 +42,26 @@ func (r *orderRepository) SaveOrder(ctx context.Context, order domain.OrderReque
 
 	order.Status = "created"
 	return order, nil
+}
+
+func (r *orderRepository) SaveEventRegistration(ctx context.Context, registration domain.EventRegistrationRequest) (domain.EventRegistrationRequest, error) {
+	query := `INSERT INTO event_registrations (event_name, transaction_id, user_id, service_type, amount, payment_method)
+              VALUES ($1, $2, $3, $4, $5, $6)
+              RETURNING id`
+
+	err := r.DB.QueryRowContext(ctx, query,
+		registration.EventName,
+		registration.TransactionID,
+		registration.UserID,
+		registration.OrderType,
+		registration.Amount,
+		registration.PaymentMethod).Scan(&registration.OrderID)
+
+	if err != nil {
+		return domain.EventRegistrationRequest{}, err
+	}
+
+	return registration, nil
 }
 
 func (r *orderRepository) UpdateOrderStatus(ctx context.Context, orderID string, status string) error {

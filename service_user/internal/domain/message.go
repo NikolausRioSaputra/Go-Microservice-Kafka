@@ -8,6 +8,7 @@ type Message struct {
 	ItemId        string `json:"itemId"`
 	PaymentMethod string `json:"paymentMethod"`
 	OrderAmount   int    `json:"orderAmount"`
+	Amount        int    `json:"amount"`
 }
 
 type Response struct {
@@ -18,6 +19,7 @@ type Response struct {
 	OrderAmount   int    `json:"orderAmount"`
 	TransactionId string `json:"transactionId"`
 	UserId        string `json:"userId"`
+	Amount        int    `json:"amount"`
 	ItemId        string `json:"itemId"`
 	RespCode      int    `json:"respCode"`
 	RespStatus    string `json:"respStatus"`
